@@ -3,6 +3,7 @@ package com.ecole221.school.school_api.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
@@ -23,6 +24,8 @@ public class Classe {
     private double fraisInscription;
     private double mensualite;
     private double autreFrais;
+    private LocalDate dateDebutInscription;
+    private LocalDate dateFinInscription;
 
     @ManyToOne
     @JoinColumn(name = "filiere_id")

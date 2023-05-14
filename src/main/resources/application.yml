@@ -1,0 +1,23 @@
+app:
+  keycloak:
+    admin:
+      username: admin
+      password: admin
+    login:
+      url: http://localhost:8080/realms/secure-realm-app/protocol/openid-connect/token
+    server:
+      url: http://keycloak:8080
+    client-secret: d25e5dc6-d31e-4b18-8d14-3f84144600b7
+    realm:
+      name: secure-realm-app
+    client-id: school-app
+    grant-type: password
+keycloak:
+  use-resource-role-mappings: 'true'
+  ssl-required: external
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/secure-realm-app

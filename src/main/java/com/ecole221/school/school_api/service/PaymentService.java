@@ -52,7 +52,7 @@ public class PaymentService {
             for (int i = 0; i < remainingMonths; i++) {
                 Payment payment = new Payment();
                 payment.setInscription(registration);
-                calendar.add(Calendar.MONTH, i); // increment month after nov
+                calendar.add(Calendar.MONTH, 1); // increment month after nov
                 payment.setMois(new SimpleDateFormat("MMMM").format(calendar.getTime()));
                 payment.setAmount(mensualite);
                 payments.add(payment);

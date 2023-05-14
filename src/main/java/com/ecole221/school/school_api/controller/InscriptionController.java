@@ -54,6 +54,16 @@ public class InscriptionController {
 
         Double initialDeposit = inscription.getInitialDeposit();
 
+
+        LocalDate DateDebutInscription = classeOptional.get().getDateDebutInscription();
+        LocalDate DateFinInscription = classeOptional.get().getDateFinInscription();
+        LocalDate dateInscription = inscription.getDateDeInscription();
+
+        if (dateInscription.isBefore(DateDebutInscription) || dateInscription.isAfter(DateFinInscription)) {
+            throw new IllegalArgumentException("Registration date not within allowed range");
+        }
+
+
         if (initialDeposit < minimumDeposit) {
              throw new IllegalArgumentException("The amount paid must be at least " + minimumDeposit);
         }
