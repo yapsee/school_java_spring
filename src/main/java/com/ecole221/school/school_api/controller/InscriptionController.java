@@ -53,16 +53,19 @@ public class InscriptionController {
         Double minimumDeposit = fraisInscription + autresFrais + mensualite;
 
         Double initialDeposit = inscription.getInitialDeposit();
+        Double annualAmount = fraisInscription + autresFrais + (9 * mensualite);
 
 
         LocalDate DateDebutInscription = classeOptional.get().getDateDebutInscription();
         LocalDate DateFinInscription = classeOptional.get().getDateFinInscription();
         LocalDate dateInscription = inscription.getDateDeInscription();
-
-        if (dateInscription.isBefore(DateDebutInscription) || dateInscription.isAfter(DateFinInscription)) {
-            throw new IllegalArgumentException("Registration date not within allowed range");
+//
+//        if (dateInscription.isBefore(DateDebutInscription) || dateInscription.isAfter(DateFinInscription)) {
+//            throw new IllegalArgumentException("Registration date not within allowed range");
+//        }
+        if (initialDeposit > annualAmount) {
+            throw new IllegalArgumentException("The initial deposit must not be greater than " + annualAmount);
         }
-
 
         if (initialDeposit < minimumDeposit) {
              throw new IllegalArgumentException("The amount paid must be at least " + minimumDeposit);
@@ -76,7 +79,7 @@ public class InscriptionController {
             inscription.setClasse(classeOptional.get());
             Inscription registration = inscriptionService.createInscription(inscription);
 
-                paymentService.proceedPayments(registration, initialDeposit, minimumDeposit , mensualite);
+                paymentService.launchPayments(registration, initialDeposit, minimumDeposit , mensualite);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(registration);
             } else {

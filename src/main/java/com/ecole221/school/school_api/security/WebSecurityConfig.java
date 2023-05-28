@@ -14,8 +14,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class WebSecurityConfig {
 
-    public static final String ADMIN = "user";
-    public static final String USER = "admin";
+    public static final String ADMIN = "admin";
+    public static final String USER = "user";
     //public static final String GLOBAL_ADMIN = "globaladmin";
 
 
@@ -26,10 +26,10 @@ public class WebSecurityConfig {
         http.csrf().disable();
 
         http.authorizeHttpRequests()
-                .requestMatchers("/login").permitAll() //like skip+before_action
+                .requestMatchers("/login").permitAll() // like skip_before_action
                 .requestMatchers("/user/**").hasAnyAuthority(ADMIN, USER)
                 .requestMatchers("/admin/**").hasAuthority(ADMIN)
-                //.requestMatchers("/keycloak/**").hasAuthority(GLOBAL_ADMIN)
+                .requestMatchers("/keycloak/**").hasAuthority(ADMIN)
                 .anyRequest().authenticated();
         http.oauth2ResourceServer()
                 .jwt()

@@ -1,8 +1,11 @@
 package com.ecole221.school.school_api.model;
 
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -11,22 +14,20 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "payments")
-public class Payment {
+@Table(name = "periodes")
+public class Periode {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false, columnDefinition = "UUID default gen_random_uuid()")
     private UUID id;
 
-    private String mois;
-    private Double amount;
     private String libelle;
 
-    @ManyToOne
-    @JoinColumn(name = "inscription_id")
-    private Inscription inscription;
+    private Integer numero;
 
-    @ManyToOne()
-    @JoinColumn(name = "periode_id")
-    private Periode periode;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "periode")
+    private List<Payment> payments;
 }
