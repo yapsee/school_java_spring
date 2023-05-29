@@ -1,15 +1,16 @@
 package com.ecole221.school.school_api.service;
 
-import com.ecole221.school.school_api.model.Inscription;
-import com.ecole221.school.school_api.model.Payment;
-import com.ecole221.school.school_api.model.Periode;
+import com.ecole221.school.school_api.model.*;
 import com.ecole221.school.school_api.repository.PaymentRepository;
 import com.ecole221.school.school_api.repository.PeriodeRepository;
+import com.ecole221.school.school_api.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.List;
 
 @Service
 
@@ -21,76 +22,17 @@ public class PaymentService {
     @Autowired
     private PeriodeRepository periodeRepository;
 
+    @Autowired
+    private StudentRepository studentRepository;
 
-
-    public void  proceedPayments(Inscription registration, Double initialDeposit, Double minimumDeposit , Double  mensualite) {
-
-        List<Payment> payments = new ArrayList<>();
-        // Create payment for November
-        Optional<Periode> November = periodeRepository.findByNumero(1);
-        Payment paymentNov = new Payment();
-        paymentNov.setInscription(registration);
-       // paymentNov.setMois("November");
-        paymentNov.setLibelle(November.get().getLibelle());
-        paymentNov.setAmount(mensualite);
-        paymentNov.setPeriode(November.get());
-        payments.add(paymentNov);
-
-
-        // Create payment for November
-//        Payment paymentNov = new Payment();
-//        paymentNov.setInscription(registration);
-//        paymentNov.setMois("November");
-//        paymentNov.setLibelle("Mensualite");
-//        paymentNov.setAmount(mensualite);
-//        payments.add(paymentNov);
-//
-////        Payment paymentFrais = new Payment();
-////        paymentFrais.setInscription(registration);
-////        paymentFrais.setMois("November");
-////        paymentNov.setLibelle("Frais Inscription et autres ");
-////        paymentFrais.setAmount(minimumDeposit);
-////        payments.add(paymentFrais);
-
-
-        // Check amount after november payment
-        Double remainingBalanceAfterNov = initialDeposit - minimumDeposit;
-        if (remainingBalanceAfterNov >= mensualite) {
-            // Check number of month with the remaining amount
-            int remainingMonths = (int) Math.floor(remainingBalanceAfterNov / mensualite);
-            // See if there is a remaining so i can add to student solde
-            Double remainingAmount = remainingBalanceAfterNov % mensualite;
-            // Incrémenter le solde de l'étudiant
-            registration.getStudent().setSolde(registration.getStudent().getSolde() + remainingAmount);
-            // Créer des paiements pour les mois restants
-            Calendar calendar = Calendar.getInstance();
-            calendar.set(Calendar.MONTH, 11); // Set month to november
-            for (int i = 0; i < remainingMonths; i++) {
-                Payment payment = new Payment();
-                payment.setInscription(registration);
-                calendar.add(Calendar.MONTH, 1); // increment month after nov
-                payment.setMois(new SimpleDateFormat("MMMM").format(calendar.getTime()));
-                payment.setAmount(mensualite);
-                payments.add(payment);
-
-            }
-        }
-        // Save payments
-        createPayments(payments);
-    }
 
 
     public void  launchPayments(Inscription registration, Double initialDeposit, Double minimumDeposit , Double  mensualite) {
 
         List<Payment> payments = new ArrayList<>();
         // Create payment for November
-        Optional<Periode> november = periodeRepository.findByNumero(1);
-        Payment paymentNov = new Payment();
-        paymentNov.setInscription(registration);
-        paymentNov.setLibelle("Mensualite");
-        paymentNov.setMois(november.get().getLibelle());
-        paymentNov.setAmount(mensualite);
-        paymentNov.setPeriode(november.get());
+        Optional<Periode> novemberPeriod = periodeRepository.findByNumero(1);
+        Payment paymentNov = createPayment(registration, "Mensualite", novemberPeriod.get().getLibelle(), mensualite, novemberPeriod.get());
         payments.add(paymentNov);
 
 
@@ -107,13 +49,9 @@ public class PaymentService {
             // Créer des paiements pour les mois restant
             for (int i = 1; i <= remainingMonths; i++) {
 
-                Optional<Periode> mois = periodeRepository.findByNumero(i+1);
-                Payment payment = new Payment();
-                payment.setInscription(registration);
-                payment.setLibelle("Mensualite");
-                payment.setMois(mois.get().getLibelle());
-                payment.setAmount(mensualite);
-                payment.setPeriode(mois.get());
+
+                Optional<Periode> periode = periodeRepository.findByNumero(i + 1);
+                Payment payment = createPayment(registration, "Mensualite", periode.get().getLibelle(), mensualite, periode.get());
                 payments.add(payment);
 
             }
@@ -121,9 +59,72 @@ public class PaymentService {
         // Save payments
         createPayments(payments);
     }
+    private Payment createPayment(Inscription registration, String libelle, String mois, Double amount, Periode periode) {
+        Payment payment = new Payment();
+        payment.setInscription(registration);
+        payment.setLibelle(libelle);
+        payment.setMois(mois);
+        payment.setAmount(amount);
+        payment.setPeriode(periode);
+        return payment;
+    }
 
     public void createPayments(List<Payment> payments) {
         paymentRepository.saveAll(payments);
+    }
+
+
+
+    public void makePartialPaymentForStudent(UUID studentId, Double amount) {
+        Optional<Student> optionalStudent = studentRepository.findById(studentId);
+        if (optionalStudent.isPresent()) {
+            Student student = optionalStudent.get();
+            Double solde = student.getSolde();
+
+
+
+            // Calculate the last paid month by the student
+
+            Optional <Payment> lastPayment = paymentRepository.findTopByInscriptionStudentIdOrderByPeriodeNumeroDesc(studentId);
+
+            Classe classe = lastPayment.get().getInscription().getClasse();
+
+            int lastPaidMonth = lastPayment.map(payment -> payment.getPeriode().getNumero()).orElse(0);
+
+//            int periodLines = (int) periodeRepository.count();
+//
+//            int numberMonthsToPay = periodLines -  lastPaidMonth;
+
+
+             // Calculate the number of payments to be made
+            Double updatedSolde = solde + amount;
+            int numberOfPayments = (int) Math.floor(updatedSolde / classe.getMensualite());
+
+
+//            if( numberOfPayments > numberMonthsToPay){
+//                throw new IllegalArgumentException("The amount exceed the total of class payments");
+//
+//            }
+
+            // Create payments starting from the next month after the last paid month
+            for (int i = lastPaidMonth + 1; i <= lastPaidMonth + numberOfPayments; i++) {
+                Optional<Periode> periode = periodeRepository.findByNumero(i);
+                if (periode.isPresent()) {
+                    Payment payment = new Payment();
+                    payment.setInscription(lastPayment.get().getInscription());
+                    payment.setLibelle("Mensualite");
+                    payment.setMois(periode.get().getLibelle());
+                    payment.setAmount(classe.getMensualite());
+                    payment.setPeriode(periode.get());
+                    paymentRepository.save(payment);
+                } else {
+                    throw new IllegalArgumentException("The amount exceed the total of class payments");
+                }
+            }
+
+        } else {
+            throw new IllegalArgumentException("Student with ID " + studentId + " not found.");
+        }
     }
 
 
