@@ -7,8 +7,6 @@ import com.ecole221.school.school_api.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
@@ -34,6 +32,12 @@ public class PaymentService {
         Optional<Periode> novemberPeriod = periodeRepository.findByNumero(1);
         Payment paymentNov = createPayment(registration, "Mensualite", novemberPeriod.get().getLibelle(), mensualite, novemberPeriod.get());
         payments.add(paymentNov);
+
+        Payment autres = createPayment(registration, "Autres frais", novemberPeriod.get().getLibelle(), registration.getClasse().getAutreFrais(), novemberPeriod.get());
+        payments.add(autres);
+
+        Payment ins = createPayment(registration, "Inscription", novemberPeriod.get().getLibelle(), registration.getClasse().getFraisInscription(), novemberPeriod.get());
+        payments.add(ins);
 
 
 
@@ -75,7 +79,7 @@ public class PaymentService {
 
 
 
-    public void makePartialPaymentForStudent(UUID studentId, Double amount) {
+    public Payment makePartialPaymentForStudent(UUID studentId, Double amount) {
         Optional<Student> optionalStudent = studentRepository.findById(studentId);
         if (optionalStudent.isPresent()) {
             Student student = optionalStudent.get();
@@ -88,35 +92,36 @@ public class PaymentService {
             Optional <Payment> lastPayment = paymentRepository.findTopByInscriptionStudentIdOrderByPeriodeNumeroDesc(studentId);
 
             Classe classe = lastPayment.get().getInscription().getClasse();
+            Double mensualite =  classe.getMensualite();
 
             int lastPaidMonth = lastPayment.map(payment -> payment.getPeriode().getNumero()).orElse(0);
-
-//            int periodLines = (int) periodeRepository.count();
-//
-//            int numberMonthsToPay = periodLines -  lastPaidMonth;
 
 
              // Calculate the number of payments to be made
             Double updatedSolde = solde + amount;
-            int numberOfPayments = (int) Math.floor(updatedSolde / classe.getMensualite());
 
+            if (updatedSolde < mensualite) {
+                throw new IllegalArgumentException("cumulated amount " + updatedSolde + " is not enough for payment");
+            }
 
-//            if( numberOfPayments > numberMonthsToPay){
-//                throw new IllegalArgumentException("The amount exceed the total of class payments");
-//
-//            }
+            int numberOfPayments = (int) Math.floor(updatedSolde / mensualite);
 
+            Double remainingAmount = updatedSolde % mensualite;
             // Create payments starting from the next month after the last paid month
             for (int i = lastPaidMonth + 1; i <= lastPaidMonth + numberOfPayments; i++) {
                 Optional<Periode> periode = periodeRepository.findByNumero(i);
                 if (periode.isPresent()) {
+
                     Payment payment = new Payment();
                     payment.setInscription(lastPayment.get().getInscription());
                     payment.setLibelle("Mensualite");
                     payment.setMois(periode.get().getLibelle());
-                    payment.setAmount(classe.getMensualite());
+                    payment.setAmount(mensualite);
                     payment.setPeriode(periode.get());
                     paymentRepository.save(payment);
+
+
+                   
                 } else {
                     throw new IllegalArgumentException("The amount exceed the total of class payments");
                 }
@@ -125,6 +130,7 @@ public class PaymentService {
         } else {
             throw new IllegalArgumentException("Student with ID " + studentId + " not found.");
         }
+        return null;
     }
 
 

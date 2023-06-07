@@ -17,14 +17,14 @@ public class PaymentController {
 
 
     @PostMapping("")
-    public ResponseEntity<String> createPayment(@RequestParam("studentId") UUID studentId, @RequestParam("amount") Double amount) {
+    public ResponseEntity<Payment> createPayment(@RequestParam UUID studentId, @RequestParam Double amount) {
         try {
-            paymentService.makePartialPaymentForStudent(studentId, amount);
-            return ResponseEntity.ok("Payment made successfully.");
+            Payment payment = paymentService.makePartialPaymentForStudent(studentId, amount);
+            return ResponseEntity.ok(payment);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            throw e;
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the payment process.");
+            throw e;
         }
     }
 }
